@@ -99,7 +99,7 @@ $.fn.scroll = function(obj) {
             fnDown({ pageY: 0 })
             var y = that.scrollTop - points[space - 1];
             fnMove({ pageY: y });
-            isElastic = elastic;
+            var isElastic = elastic;
             elastic = false;
             fnUp({ pageY: y });
             elastic = isElastic;
