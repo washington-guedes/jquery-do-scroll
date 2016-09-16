@@ -13,7 +13,9 @@ $.fn.scroll = function(obj) {
     var offset = $that.offset();
     var maxTop = -height;
     $that.children('img').each(function() {
-        maxTop += $(this).height();
+        $(this).on('load', function() {
+            maxTop += $(this).height();
+        });
     });
     var barHeight;
     if (obj.bar) {
@@ -35,18 +37,26 @@ $.fn.scroll = function(obj) {
     var lastMove;
     var lastSpace = 1;
     var currentSpace = 1;
+    var getY = function(e) {
+        if (isNaN(e.pageY)) {
+            e = e.originalEvent;
+            e = e.touches[0] || e.changedTouches[0];
+            return e.pageY;
+        }
+        return e.pageY;
+    };
     var fnDown = function(e) {
         if (typeof e.stopPropagation === 'function') {
             e.stopPropagation();
         }
-        startY = e.pageY;
+        startY = getY(e);
         startAtTop = that.scrollTop;
         $that.on(moveEvent, fnMove);
-    }
+    };
     var moveEvent = 'mousemove touchmove';
     var fnMove = function(e) {
         lastMove = new Date;
-        distance = startY - e.pageY;
+        distance = startY - getY(e);
         $that.scrollTop((startAtTop + distance).between(0, maxTop));
         if (barHeight) {
             obj.bar.css({
@@ -70,7 +80,7 @@ $.fn.scroll = function(obj) {
         (function setDelay(counter, i) {
             if (counter) {
                 setTimeout(function() {
-                    var newY = e.pageY - delay * i;
+                    var newY = getY(e) - delay * i;
                     fnMove({ pageY: newY });
                     setDelay(counter - 1, i + 1);
                 }, delayTime);
