@@ -13,15 +13,6 @@ $.fn.scroll = function(obj) {
     var offset = $that.offset();
     var offTop = offset.top;
     var maxTop = -height;
-    $that.children('img').each(function() {
-        $(this).on('load', function() {
-            $(this).css({
-                position: 'relative',
-                float: 'left',
-            });
-            maxTop += $(this).height();
-        });
-    });
     var thisBar = $(obj.bar);
     if (thisBar.length) {
         thisBar.detach().appendTo('body');
@@ -34,7 +25,7 @@ $.fn.scroll = function(obj) {
     var getSpace = false;
     var barMaxTop = height - thisBar.height();
     var startAtTop;
-    var startY = 0;
+    var startY;
     var distance;
     var touchStarted;
     var lastRun;
@@ -70,7 +61,11 @@ $.fn.scroll = function(obj) {
         $that.on(moveEvent, fnMove);
     };
     var points = obj.arrayFnSpaces || [function() {}];
-    var fnSpaceChanged = points[0];
+    var fnSpaceChange = points[0];
+    var fnSpaceChanged = function(newSpace, oldSpace) {
+        lastSpace = currentSpace;
+        fnSpaceChange(newSpace, oldSpace);
+    };
     points[0] = 0;
     points.push(Infinity);
     var totalPoints = points.length;
@@ -93,19 +88,21 @@ $.fn.scroll = function(obj) {
             lastRun = new Date;
             distance = startY - getY(e);
             $that.scrollTop((startAtTop + distance).between(0, maxTop));
-            thisBar.css('top', that.scrollTop / maxTop * barMaxTop + offTop);
+            thisBar.css({
+                top: that.scrollTop / maxTop * barMaxTop + offTop,
+                display: 'block',
+            });
             currentSpace = getSpace(that.scrollTop);
+            running = false;
             if (currentSpace !== lastSpace) {
                 fnSpaceChanged(currentSpace, lastSpace);
-                lastSpace = currentSpace;
             }
-            running = false;
         });
     };
     var fnUp = function(e) {
         $that.off(moveEvent, fnMove);
         if (elastic && elapsedTime(lastRun) < 200) {
-            var totalTime = elapsedTime(touchStarted, 1);
+            var totalTime = elapsedTime(touchStarted, null, 'seconds');
             newTime = totalTime.between(2, totalTime);
             elasticEffect(getY(e), distance / newTime, 20);
         }
@@ -128,9 +125,7 @@ $.fn.scroll = function(obj) {
     $that.on('mousedown touchstart', fnDown)
         .on('mouseup touchend', fnUp)
         .on('scroll mousewheel', prevent);
-    fnMove({ pageY: 0 });
-    thisBar.show();
-    return {
+    var manager = {
         moveToSpace: function(space) {
             fnDown({ pageY: 0 });
             var y = that.scrollTop - points[space - 1];
@@ -141,4 +136,21 @@ $.fn.scroll = function(obj) {
             elastic = isElastic;
         },
     };
+    var initialSpace = parseInt(obj.initialSpace).between(1, totalPoints);
+    var imgs = $that.children('img');
+    var loaded = 0;
+    imgs.each(function() {
+        $(this).on('load', function() {
+            $(this).css({
+                position: 'relative',
+                float: 'left',
+            });
+            loaded++;
+            maxTop += $(this).height();
+            if (loaded === imgs.length) {
+                manager.moveToSpace(initialSpace || 1);
+            }
+        });
+    });
+    return manager;
 };
