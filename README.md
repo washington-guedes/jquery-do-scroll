@@ -4,11 +4,9 @@ Creates an scroll-y like action.
 HTML:
 
     <div class="wrapper">
-        <div class="space">
-        <div class="space">
-        <div class="space">
-        <div class="space">
-        <div class="space">
+        <div class="space"></div>
+        <div class="space"></div>
+        <div class="space"></div>
     </div>
     <div class="scroll-bar"></div>
 
