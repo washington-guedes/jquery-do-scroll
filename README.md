@@ -1,4 +1,4 @@
-# jquery-scroll-custom
+# jquery-handle-scroll
 Creates an scroll-y like action.
 
 HTML:
@@ -34,7 +34,7 @@ CSS:
 
 JS:
 
-    $('.wrapper').handleScroll({
+    var ctrl = $('.wrapper').handleScroll({
         scrollbar: '.scrollbar',
         arrayFnSpaces: [fnAction, '.space'],
         initialSpace: 1,
