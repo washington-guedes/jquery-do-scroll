@@ -1,41 +1,48 @@
 # jquery-scroll-custom
-Creates an scroll-y with touchmove and mousemove events.
+Creates an scroll-y like action.
 
 HTML:
 
-    <div class="scroll">
-        <img src="imgs/scroll.png">
+    <div class="wrapper">
+        <div class="space">
+        <div class="space">
+        <div class="space">
+        <div class="space">
+        <div class="space">
     </div>
     <div class="scroll-bar"></div>
 
 CSS:
 
-    .scroll {
-        position: absolute;
-        margin: 418px 0 0 122px;
-        width: 1804px;
-        height: 868px;
-        overflow: hidden;
+    .space {
+        height: 150px;
     }
     
-    .scroll-bar {
-        width: 14px;
-        border: 1px solid #ffe600;
-        border-radius: 7px;
-        background-color: #ffe600;
-        display: none;
-        height: 170px;
+    div.wrapper {
+        height: 400px;
+        width: 700px;
+        background-color: yellow;
+        padding-right: 15px;
+    }
+    
+    .scrollbar {
+        border: 2px solid transparent;
+        height: 75px;
+        width: 10px;
+        border-radius: 15px;
+        background-color: #000;
+        margin-left: 20px;
     }
 
 JS:
 
-    var div = $('.scroll');
-    var fnCtrl = div.scroll({
-        bar: '.scroll-bar',
-        arrayFnSpaces: [fnAction, 594, 1414, 2162, 3022, 3514],
-        elastic: true,
+    $('.wrapper').handleScroll({
+        scrollbar: '.scrollbar',
+        arrayFnSpaces: [fnAction, '.space'],
+        initialSpace: 1,
+        smoothEffect: true,
     });
 
-    function fnAction(currentSpace) {
-        console.log(currentSpace);
+    function fnAction() {
+        console.log(this.space);
     };
