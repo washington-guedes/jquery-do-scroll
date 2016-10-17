@@ -2,7 +2,6 @@ $.fn.handleScroll = function(obj) {
 
     // Create an manager extended from options obj
     // return it in instantiation phase
-
     var ctrl = $.extend({}, obj);
     ctrl.wrapper = this[0];
     ctrl.$wrapper = this.css({
