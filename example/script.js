@@ -8,31 +8,33 @@ $(document).ready(function() {
         });
     });
 
-    var ctrl = $('.wrapper').handleScroll({
-        scrollbar: '.scrollbar',
-        arrayFnSpaces: [fnAction, '.space'],
-        initialSpace: 1,
-        smoothEffect: true,
-    });
-
     var $input = $('input');
-    $input.on('input', function() {
-        ctrl.moveToSpace(this.value);
-    });
 
-    $input.attr({
-        min: 1,
-        max: ctrl.numSpaces,
-    });
+    var fnOnInit = function(ctrl) {
+        $input.attr({
+            min: 1,
+            max: ctrl.numSpaces,
+        });
+        $input.on('input', function() {
+            ctrl.moveToSpace(this.value);
+        });
+    };
 
-    function fnAction() {
-        $input.val(this.space);
-        var $space = $('.space:nth-child(' + this.space + ')');
-        this.scrollbar.css({
+    var fnAction = function(ctrl) {
+        $input.val(ctrl.space);
+        var $space = $('.space:nth-child(' + ctrl.space + ')');
+        ctrl.scrollbar.css({
             'border-color': $space.data('color'),
             'background-color': $space.data('bg'),
         });
-        this.$wrapper.css('background-color', $space.data('bg'));
+        ctrl.$wrapper.css('background-color', $space.data('bg'));
     };
+
+    var instance = $('.wrapper').handleScroll({
+        scrollbar: '.scrollbar',
+        arrayFnSpaces: [fnAction, '.space'],
+        wheelStep: 150,
+        onInit: fnOnInit,
+    });
 
 });

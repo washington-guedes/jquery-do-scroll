@@ -7,8 +7,8 @@ input[type=number] {
 div.wrapper {
     height: 400px;
     width: 700px;
-    background-color: yellow;
     padding-right: 15px;
+    overflow: hidden;
 }
 
 .space {
@@ -17,10 +17,11 @@ div.wrapper {
 }
 
 .scrollbar {
-    border: 2px solid transparent;
+    border: 2px solid #000;
     height: 75px;
     width: 10px;
     border-radius: 15px;
-    background-color: #000;
+    background-color: #fff;
     margin-left: 20px;
+    display: none;
 }
