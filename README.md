@@ -1,46 +1,25 @@
-# jquery-handle-scroll
+# jquery-do-scroll
 Creates an scroll-y like action.
 
-HTML:
+You can create an scroll-y this way:
 
-    <div class="wrapper">
-        <div class="space"></div>
-        <div class="space"></div>
-        <div class="space"></div>
-    </div>
-    <div class="scroll-bar"></div>
+```JavaScript
+$('.wrapper').doScroll();
+```
 
-CSS:
+But of course, you can add custom settings:
 
-    .space {
-        height: 150px;
-    }
-    
-    div.wrapper {
-        height: 400px;
-        width: 700px;
-        background-color: yellow;
-        padding-right: 15px;
-    }
-    
-    .scrollbar {
-        border: 2px solid transparent;
-        height: 75px;
-        width: 10px;
-        border-radius: 15px;
-        background-color: #000;
-        margin-left: 20px;
-    }
+```JavaScript
+var options = {
+	onInit: function() {},
+	onSpaceChange: function() {},
+	spaceLimits: [0, 245, '#animate', '.spaces'],
+	scrollbar: '.scrollbar',
+	smoothEffect: true,
+	initialSpace: 1,
+	wheelStep: 150,
+};
+$('.scroll-container').doScroll(options);
+```
 
-JS:
-
-    var ctrl = $('.wrapper').handleScroll({
-        scrollbar: '.scrollbar',
-        arrayFnSpaces: [fnAction, '.space'],
-        initialSpace: 1,
-        smoothEffect: true,
-    });
-
-    function fnAction() {
-        console.log(this.space);
-    };
+All properties are optional.
