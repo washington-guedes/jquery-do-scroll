@@ -8,6 +8,7 @@ $.fn.doScroll = function(obj) {
         overflow: 'hidden',
         cursor: '-webkit-grab',
         'user-select': 'none',
+        'touch-action': 'pan-y;',
     });
 
     // block a number from overflowing its own limits
@@ -88,6 +89,7 @@ $.fn.doScroll = function(obj) {
         });
         ctrl.numSpaces = points.length - 1;
         ctrl.points = points;
+        // console.log(ctrl.points);
     };
 
     // prepare the scrollbar environment if exists
@@ -105,6 +107,7 @@ $.fn.doScroll = function(obj) {
     ctrl.prevent = function(e) {
         e.preventDefault();
     };
+    ctrl.$wrapper.on(preventEvents, ctrl.prevent);
 
     // function to get actual space (TODO: test some binary search algorithms)
     ctrl.getSpace = function(y) {
@@ -138,7 +141,7 @@ $.fn.doScroll = function(obj) {
 
     // handle move events
     var moveEvents = 'mousemove touchmove';
-    var height = ctrl.$wrapper.outerHeight(true);
+    var height = ctrl.$wrapper.height();
     var offTop = ctrl.$wrapper.offset().top;
     var barMaxTop = height - ctrl.scrollbar.outerHeight(true);
     var maxTop = -height; // the final value is calculated on `init`
@@ -262,10 +265,16 @@ $.fn.doScroll = function(obj) {
     bind[downEvents] = ctrl.fnUserDown;
     bind[moveEvents] = ctrl.fnUserMove;
     bind[upEvents] = ctrl.fnUserUp;
-    bind[preventEvents] = ctrl.prevent;
     bind.mouseleave = ctrl.fnMouseleave;
     bind.mousewheel = ctrl.fnMousewheel;
-    ctrl.$wrapper.on(bind);
+    var supportPassive = false;
+    try {
+        var opts = Object.defineProperty({}, 'passive', {
+            get: function() { supportPassive = true },
+        });
+        window.addEventListener('test', null, opts);
+    } catch (e) {}
+    ctrl.$wrapper.on(bind, supportPassive && { passive: true });
 
     // allow user to move to a specific scrollTop position
     ctrl.moveToPos = function(y) {
