@@ -297,25 +297,37 @@ $.fn.doScroll = function(obj) {
 
     // function that initializes the plugin
     var init = function() {
-        getPoints();
-        typeof ctrl.onInit === 'function' && ctrl.onInit(ctrl);
-        setInitialSpace();
+        window.requestAnimationFrame(function() {
+            ctrl.$wrapper.css({
+                overflow: 'visible',
+                height: 'auto',
+            });
+            maxTop += ctrl.$wrapper.height();
+            ctrl.$wrapper.css({
+                'overflow': 'hidden',
+                'height': height,
+            });
+            getPoints();
+            typeof ctrl.onInit === 'function' && ctrl.onInit(ctrl);
+            setInitialSpace();
+        });
     };
 
-    // wait all children heights to be available and set `maxTop`
-    var children = ctrl.validElements(ctrl.$wrapper.children());
+    // wait all image heights to be available
+    var childrenImgs = ctrl.$wrapper.find('img');
     var loaded = 0;
-    children.each(function() {
+    childrenImgs.each(function() {
         var $this = $(this);
         var timer = setInterval(function() {
             if ($this.is('img') && $this.height() == 0) {
+                console.log('waiting for: ' + $this[0].src);
                 return;
             }
-            maxTop += $this.outerHeight(true);
-            (++loaded === children.length) && init();
+            (++loaded === childrenImgs.length) && init();
             clearInterval(timer);
         }, 50);
     });
+    childrenImgs.length || init();
 
     // Return ctrl instance to the user 
     return ctrl;
