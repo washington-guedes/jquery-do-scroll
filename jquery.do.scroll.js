@@ -33,20 +33,6 @@ $.fn.doScroll = function(obj) {
         return e.pageY;
     };
 
-    // function to allow only visible elements which has calculable height
-    ctrl.validElements = function($elements) {
-        return $elements.filter(function() {
-            var $this = $(this);
-            if ($this.is(':hidden')) {
-                $this.show();
-            }
-            if (['relative', 'static'].indexOf($this.css('position')) === -1) {
-                return false;
-            }
-            return true;
-        });
-    };
-
     // The below function get all scrollTop positions from spaceLimits:
     //  - when number: consider as scrollTop position
     //  - when string: consider as selector and add each match's scrollTop
@@ -66,11 +52,10 @@ $.fn.doScroll = function(obj) {
                 case 'string':
                     var selector = points.splice(i, 1)[0];
                     ctrl.$wrapper.find(selector).each(function() {
-                        var top = 0;
-                        ctrl.validElements($(this).prevAll()).each(function() {
-                            top += $(this).outerHeight(true);
-                        });
-                        points.splice(i++, 0, top);
+                        var $this = $(this);
+                        var $visible = $this.add($this.nextAll(':visible')).hide();
+                        points.splice(i++, 0, ctrl.$wrapper.height());
+                        $visible.show();
                     });
                     break;
                 default:
@@ -298,16 +283,19 @@ $.fn.doScroll = function(obj) {
     // function that initializes the plugin
     var init = function() {
         window.requestAnimationFrame(function() {
+            var initialPosition = ctrl.$wrapper.css('position');
             ctrl.$wrapper.css({
+                position: 'absolute',
                 overflow: 'visible',
                 height: 'auto',
             });
             maxTop += ctrl.$wrapper.height();
-            ctrl.$wrapper.css({
-                'overflow': 'hidden',
-                'height': height,
-            });
             getPoints();
+            ctrl.$wrapper.css({
+                position: initialPosition,
+                overflow: 'hidden',
+                height: height,
+            });
             typeof ctrl.onInit === 'function' && ctrl.onInit(ctrl);
             setInitialSpace();
         });
