@@ -192,21 +192,14 @@ $.fn.doScroll = function(obj) {
     // issue enhancement #4
     ctrl.fnStorage = function(action) {
         if (window.localStorage && window.location && ctrl.id) {
-            var key = ['doScroll', location.href, ctrl.id].join(';');
-            if (action == 'get') {
-                var storedY = localStorage.getItem(key);
-                if (storedY) {
-                    ctrl.moveToPos(storedY);
-                    // localStorage.removeItem(key);
-                    return true;
-                }
+            ctrl.storageKey = ['doScroll', location.href, ctrl.id].join(';');
+            var position = lastScrollTop || localStorage.getItem(ctrl.storageKey);
+            lastScrollTop = localStorage[action](ctrl.storageKey, position);
+            if (action == 'getItem') {
+                ctrl.moveToPos(lastScrollTop);
             }
-            if (action == 'set') {
-                localStorage.setItem(key, lastScrollTop);
-                return true;
-            }
+            window.onbeforeunload = function() { ctrl.fnStorage('setItem'); };
         }
-        return false;
     };
 
     // handle what to do on scroll handled end
@@ -229,7 +222,7 @@ $.fn.doScroll = function(obj) {
             }
         }
         if (!isInEffect) {
-            ctrl.fnStorage('set');
+            ctrl.fnStorage('setItem');
         }
     };
     ctrl.fnUserUp = function(e) {
@@ -250,7 +243,7 @@ $.fn.doScroll = function(obj) {
             isInEffect = false;
             scrolling = false;
         }
-        ctrl.fnStorage('set');
+        ctrl.fnStorage('setItem');
     };
 
     // treat mouseleave as fnUp is fnDown is on
@@ -258,6 +251,7 @@ $.fn.doScroll = function(obj) {
         if (isFingerDown) {
             ctrl.fnUserUp(e);
         }
+        ctrl.fnStorage('setItem');
     };
 
     // Handle mouse wheel action
@@ -302,7 +296,7 @@ $.fn.doScroll = function(obj) {
     // function that moves scroll to initialSpace onInit
     var setInitialSpace = function() {
         if (isNaN(ctrl.initialSpace)) {
-            ctrl.fnStorage('get');
+            ctrl.fnStorage('getItem');
             return;
         }
         ctrl.initialSpace = between(ctrl.initialSpace, 1, ctrl.numSpaces);
