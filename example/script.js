@@ -32,6 +32,6 @@ $(document).ready(function() {
         spaceLimits: ['.space'],
     };
 
-    $('.wrapper').doScroll(options);
+    $('#myScrollWrapper').doScroll(options);
 
 });

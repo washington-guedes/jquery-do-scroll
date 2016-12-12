@@ -4,6 +4,7 @@ $.fn.doScroll = function(obj) {
     // return it in instantiation phase
     var ctrl = $.extend({}, obj);
     ctrl.wrapper = this[0];
+    ctrl.id = ctrl.wrapper.id;
     ctrl.$wrapper = this.css({
         overflow: 'hidden',
         cursor: '-webkit-grab',
@@ -188,6 +189,26 @@ $.fn.doScroll = function(obj) {
         ctrl.fnMove(e);
     };
 
+    // issue enhancement #4
+    ctrl.fnStorage = function(action) {
+        if (window.localStorage && window.location && ctrl.id) {
+            var key = ['doScroll', location.href, ctrl.id].join(';');
+            if (action == 'get') {
+                var storedY = localStorage.getItem(key);
+                if (storedY) {
+                    ctrl.moveToPos(storedY);
+                    // localStorage.removeItem(key);
+                    return true;
+                }
+            }
+            if (action == 'set') {
+                localStorage.setItem(key, lastScrollTop);
+                return true;
+            }
+        }
+        return false;
+    };
+
     // handle what to do on scroll handled end
     ctrl.hasOwnProperty('smoothEffect') || (ctrl.smoothEffect = true);
     var upEvents = 'mouseup touchend';
@@ -206,6 +227,9 @@ $.fn.doScroll = function(obj) {
                 isInEffect = true;
                 scrolling || ctrl.smooth(ctrl.getY(e));
             }
+        }
+        if (!isInEffect) {
+            ctrl.fnStorage('set');
         }
     };
     ctrl.fnUserUp = function(e) {
@@ -226,6 +250,7 @@ $.fn.doScroll = function(obj) {
             isInEffect = false;
             scrolling = false;
         }
+        ctrl.fnStorage('set');
     };
 
     // treat mouseleave as fnUp is fnDown is on
@@ -276,7 +301,11 @@ $.fn.doScroll = function(obj) {
 
     // function that moves scroll to initialSpace onInit
     var setInitialSpace = function() {
-        ctrl.initialSpace = between(ctrl.initialSpace, 1, ctrl.numSpaces) || 1;
+        if (isNaN(ctrl.initialSpace)) {
+            ctrl.fnStorage('get');
+            return;
+        }
+        ctrl.initialSpace = between(ctrl.initialSpace, 1, ctrl.numSpaces);
         ctrl.moveToSpace(ctrl.initialSpace);
     };
 

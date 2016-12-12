@@ -4,7 +4,7 @@ input[type=number] {
     font-size: 70px;
 }
 
-div.wrapper {
+div#myScrollWrapper {
     height: 400px;
     width: 700px;
     padding-right: 15px;
