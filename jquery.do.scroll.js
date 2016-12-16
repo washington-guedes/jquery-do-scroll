@@ -199,6 +199,7 @@ $.fn.doScroll = function(obj) {
                 ctrl.moveToPos(lastScrollTop);
             }
             window.onbeforeunload = function() { ctrl.fnStorage('setItem'); };
+            return true;
         }
     };
 
@@ -295,12 +296,12 @@ $.fn.doScroll = function(obj) {
 
     // function that moves scroll to initialSpace onInit
     var setInitialSpace = function() {
-        if (isNaN(ctrl.initialSpace)) {
-            ctrl.fnStorage('getItem');
-            return;
+        if (typeof ctrl.initialSpace === 'number') {
+            ctrl.initialSpace = between(ctrl.initialSpace, 1, ctrl.numSpaces);
+            ctrl.moveToSpace(ctrl.initialSpace);
+        } else if (!ctrl.fnStorage('getItem')) {
+            ctrl.moveToSpace(1);
         }
-        ctrl.initialSpace = between(ctrl.initialSpace, 1, ctrl.numSpaces);
-        ctrl.moveToSpace(ctrl.initialSpace);
     };
 
     // function that initializes the plugin
