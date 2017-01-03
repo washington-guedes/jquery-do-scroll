@@ -3,8 +3,14 @@ $.fn.doScroll = function(obj) {
     // Create an manager extended from options obj
     // return it in instantiation phase
     var ctrl = $.extend({}, obj);
+
     ctrl.wrapper = this[0];
     ctrl.id = ctrl.wrapper.id;
+
+    if (!ctrl.hasOwnProperty('storageKey') && ctrl.id) {
+        ctrl.storageKey = ['doScroll', location.href, ctrl.id].join(';');
+    }
+
     ctrl.$wrapper = this.css({
         overflow: 'hidden',
         cursor: '-webkit-grab',
@@ -79,7 +85,7 @@ $.fn.doScroll = function(obj) {
     };
 
     // prepare the scrollbar environment if exists
-    ctrl.scrollbar = $(ctrl.scrollbar);
+    ctrl.scrollbar = $(ctrl.scrollbar).hide();
     if (ctrl.scrollbar.length) {
         ctrl.scrollbar.detach().appendTo('body');
         ctrl.scrollbar.css({
@@ -87,6 +93,9 @@ $.fn.doScroll = function(obj) {
             left: ctrl.$wrapper.offset().left + ctrl.$wrapper.width(),
         });
     }
+    var getTopScrollBar = function() {
+        return parseFloat(ctrl.scrollbar.css('top').slice(0, -2));
+    };
 
     // events to be prevented
     var preventEvents = 'scroll';
@@ -118,7 +127,7 @@ $.fn.doScroll = function(obj) {
     ctrl.fnDown = function(e) {
         isFingerDown = true;
         startY = lastY = ctrl.getY(e);
-        startAtTop = ctrl.wrapper.scrollTop;
+        startAtTop = e.isScrollBar ? getTopScrollBar() - offTop : ctrl.wrapper.scrollTop;
     };
     ctrl.fnUserDown = function(e) {
         e.fromUser = true;
@@ -151,7 +160,7 @@ $.fn.doScroll = function(obj) {
             if (lastDirection !== direction) {
                 lastDirection = direction;
                 if (e.fromUser) {
-                    ctrl.fnDown({ pageY: thisY });
+                    ctrl.fnDown({ pageY: thisY, isScrollBar: e.isScrollBar });
                     scrolling = false;
                     return;
                 }
@@ -165,16 +174,23 @@ $.fn.doScroll = function(obj) {
 
             // do Scroll
             lastScrollTop = ctrl.wrapper.scrollTop;
-            var top = between(startAtTop - thisY + startY, 0, maxTop);
-            ctrl.$wrapper.scrollTop(top);
-            ctrl.scrollbar.css({
-                top: ctrl.wrapper.scrollTop / maxTop * barMaxTop + offTop,
-                display: 'block',
-            });
+            if (e.isScrollBar) {
+                var top = between(startAtTop - startY + thisY, 0, barMaxTop);
+                ctrl.scrollbar.css('top', (top + offTop) + 'px');
+                ctrl.$wrapper.scrollTop(top / barMaxTop * maxTop);
+            } else {
+                var top = between(startAtTop - thisY + startY, 0, maxTop);
+                ctrl.$wrapper.scrollTop(top);
+                ctrl.scrollbar.css({
+                    top: top / maxTop * barMaxTop + offTop,
+                    display: 'block',
+                });
+            }
+            localStorage.setItem(ctrl.storageKey, ctrl.wrapper.scrollTop);
 
             // allow next fnMove to start
             scrolling = false;
-            isInEffect && ctrl.smooth(thisY);
+            isInEffect && ctrl.smooth(thisY, e.isScrollBar);
 
             // space verification
             ctrl.space = ctrl.getSpace(ctrl.wrapper.scrollTop);
@@ -187,20 +203,6 @@ $.fn.doScroll = function(obj) {
     ctrl.fnUserMove = function(e) {
         e.fromUser = true;
         ctrl.fnMove(e);
-    };
-
-    // issue enhancement #4
-    ctrl.fnStorage = function(action) {
-        if (window.localStorage && window.location && ctrl.id) {
-            ctrl.storageKey = ['doScroll', location.href, ctrl.id].join(';');
-            var position = lastScrollTop || localStorage.getItem(ctrl.storageKey);
-            lastScrollTop = localStorage[action](ctrl.storageKey, position);
-            if (action == 'getItem') {
-                ctrl.moveToPos(lastScrollTop);
-            }
-            window.onbeforeunload = function() { ctrl.fnStorage('setItem'); };
-            return true;
-        }
     };
 
     // handle what to do on scroll handled end
@@ -219,40 +221,35 @@ $.fn.doScroll = function(obj) {
             var lastMoveLag = elapsedTime(lastMoveAt, fingerUpAt);
             if (ctrl.smoothEffect && lastMoveLag < 80) {
                 isInEffect = true;
-                scrolling || ctrl.smooth(ctrl.getY(e));
+                scrolling || ctrl.smooth(ctrl.getY(e), e.isScrollBar);
             }
-        }
-        if (!isInEffect) {
-            ctrl.fnStorage('setItem');
         }
     };
     ctrl.fnUserUp = function(e) {
         e.fromUser = true;
         ctrl.fnUp(e);
     };
-    ctrl.smooth = function(y) {
+    ctrl.smooth = function(y, scrollbar) {
         lastStep *= 0.975;
         var unchanged = lastScrollTop === ctrl.wrapper.scrollTop;
         if (unchanged || Math.abs(lastStep) < 2) {
             ctrl.endSmooth();
             return;
         }
-        ctrl.fnMove({ pageY: y + lastStep });
+        ctrl.fnMove({ pageY: y + lastStep, isScrollBar: scrollbar });
     };
     ctrl.endSmooth = function() {
         if (isInEffect) {
             isInEffect = false;
             scrolling = false;
         }
-        ctrl.fnStorage('setItem');
     };
 
-    // treat mouseleave as fnUp is fnDown is on
+    // treat mouseleave as fnUp when fnDown is on
     ctrl.fnMouseleave = function(e) {
         if (isFingerDown) {
             ctrl.fnUserUp(e);
         }
-        ctrl.fnStorage('setItem');
     };
 
     // Handle mouse wheel action
@@ -279,7 +276,20 @@ $.fn.doScroll = function(obj) {
         });
         window.addEventListener('test', null, opts);
     } catch (e) {}
-    ctrl.$wrapper.on(bind, supportPassive && { passive: true });
+    supportPassive = supportPassive && { passive: true };
+    ctrl.$wrapper.on(bind, supportPassive);
+
+    var scrollbarBind = {};
+    var scrollbarFns = function(fn) {
+        scrollbarBind[key] = function(e) {
+            e.isScrollBar = true;
+            fn.apply(this, arguments);
+        }
+    }
+    for (var key in bind) {
+        scrollbarFns(bind[key]);
+    }
+    ctrl.scrollbar.on(scrollbarBind, supportPassive);
 
     // allow user to move to a specific scrollTop position
     ctrl.moveToPos = function(y) {
@@ -296,11 +306,15 @@ $.fn.doScroll = function(obj) {
 
     // function that moves scroll to initialSpace onInit
     var setInitialSpace = function() {
-        if (typeof ctrl.initialSpace === 'number') {
+        if (ctrl.hasOwnProperty('initialSpace')) {
             ctrl.initialSpace = between(ctrl.initialSpace, 1, ctrl.numSpaces);
             ctrl.moveToSpace(ctrl.initialSpace);
-        } else if (!ctrl.fnStorage('getItem')) {
-            ctrl.moveToSpace(1);
+        } else {
+            // issue enhancement #4
+            if (ctrl.storageKey) {
+                lastScrollTop = localStorage.getItem(ctrl.storageKey);
+                ctrl.moveToPos(lastScrollTop);
+            }
         }
     };
 
