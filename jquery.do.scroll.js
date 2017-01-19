@@ -309,12 +309,12 @@ $.fn.doScroll = function(obj) {
         if (ctrl.hasOwnProperty('initialSpace')) {
             ctrl.initialSpace = between(ctrl.initialSpace, 1, ctrl.numSpaces);
             ctrl.moveToSpace(ctrl.initialSpace);
-        } else {
+        } else if (ctrl.storageKey) {
             // issue enhancement #4
-            if (ctrl.storageKey) {
-                lastScrollTop = localStorage.getItem(ctrl.storageKey);
-                ctrl.moveToPos(lastScrollTop);
-            }
+            lastScrollTop = localStorage.getItem(ctrl.storageKey);
+            ctrl.moveToPos(lastScrollTop);
+        } else {
+            ctrl.moveToSpace(1);
         }
     };
 
