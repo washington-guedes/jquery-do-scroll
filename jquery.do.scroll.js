@@ -101,7 +101,7 @@ $.fn.doScroll = function(ctrl) {
                 item = ctrl.spaceLimits[i];
 
                 if (typeof item === 'string') {
-                    $(item).each(function() {
+                    self.find(item).each(function() {
                         ctrl.points.push(this.offsetTop);
                     });
                 } else if (typeof item === 'number') {
@@ -115,7 +115,7 @@ $.fn.doScroll = function(ctrl) {
         ctrl.points.sort(function(a, b) { return a - b; });
         ctrl.points.unshift(0);
         ctrl.points.push(Infinity);
-        ctrl.points.filter(function(x, i, a) { return a[x - 1] !== x; });
+        ctrl.points = ctrl.points.filter(function(x, i, a) { return a[i - 1] !== x; });
     })();
 
     ctrl.moveToPos = moveToPos;
@@ -189,7 +189,7 @@ $.fn.doScroll = function(ctrl) {
 
         self.scrollTop(y);
         set_sbar_using_self();
-        
+
         positionChanged();
     };
 
