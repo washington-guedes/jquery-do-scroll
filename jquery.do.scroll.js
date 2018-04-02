@@ -17,7 +17,7 @@ $.fn.doScroll = function(ctrl) {
         ctrl.scrollbar = $('<div class="scrollbar"></div>').css({
             border: '1px solid #aaa',
             width: 20,
-            height: Math.min(160, _self.offsetHeight / 3),
+            height: 160,
         });
     }
 
@@ -27,9 +27,13 @@ $.fn.doScroll = function(ctrl) {
 
     sbar.css({
         position: 'absolute',
-        left: _self.offsetLeft + _self.offsetWidth,
-        top: _self.offsetTop,
+        left: (_self.offsetLeft + _self.offsetWidth) || (parseFloat(self.css('margin-left')) + self.width()),
+        top: _self.offsetTop || parseFloat(self.css('margin-top')),
     });
+
+    if (!self.is(':visible')) {
+        sbar.hide();
+    }
 
     downEvent(self);
     downEvent(sbar);
