@@ -1,360 +1,233 @@
-$.fn.doScroll = function(obj) {
+$.fn.doScroll = function(ctrl) {
+    'use strict';
 
-    // Create an manager extended from options obj
-    // return it in instantiation phase
-    var ctrl = $.extend({}, obj);
+    var self, _self, downY, isDown, isMoving, lastY, step, allowSmooth, sbar, _sbar, downHandler, item;
 
-    ctrl.wrapper = this[0];
-    ctrl.id = ctrl.wrapper.id;
+    self = this;
+    _self = this[0];
 
-    if (!ctrl.hasOwnProperty('storageKey') && ctrl.id) {
-        ctrl.storageKey = ['doScroll', location.href, ctrl.id].join(';');
-    }
+    ctrl.doScrollKey = 'doScrollKey$' + location.href + '$' + ctrl.id;
 
-    ctrl.$wrapper = this.css({
+    self.css({
         overflow: 'hidden',
-        cursor: '-webkit-grab',
-        'user-select': 'none',
-        'touch-action': 'pan-y;',
+        userSelect: 'none',
     });
 
-    // block a number from overflowing its own limits
-    var between = function(val, min, max) {
-        if (val < min) return min;
-        if (val > max) return max;
-        return val;
-    };
+    if (ctrl.scrollbar === true) {
+        ctrl.scrollbar = $('<div class="scrollbar"></div>').css({
+            border: '1px solid #aaa',
+            width: 20,
+            height: Math.min(160, _self.offsetHeight / 3),
+        });
+    }
 
-    // returns the elapsed time between two dates in /(?:mili)?seconds/
-    var elapsedTime = function(from, to, inSeconds) {
-        var miliseconds = (to || new Date) - (from || new Date);
-        return inSeconds ? miliseconds / 1000 : miliseconds;
-    };
+    sbar = $(ctrl.scrollbar);
+    self.after(sbar);
+    _sbar = sbar[0];
 
-    // returns the y axis position from an event
-    ctrl.getY = function(e) {
-        if (typeof e.pageY !== 'number') {
-            e = e.originalEvent;
-            e = e.touches[0] || e.changedTouches[0];
+    sbar.css({
+        position: 'absolute',
+        left: _self.offsetLeft + _self.offsetWidth,
+        top: _self.offsetTop,
+    });
+
+    downEvent(self);
+    downEvent(sbar);
+
+    $(window).on('mousemove touchmove', function(e) {
+        if (!isDown) return;
+
+        if (isMoving) return;
+        isMoving = true;
+
+        window.requestAnimationFrame(function() {
+            var thisY, newTop, minTop, maxTop;
+
+            thisY = getY(e);
+            step = lastY - thisY;
+            lastY = thisY;
+
+            if (downHandler === self) {
+                self.scrollTop(_self.scrollTop + step);
+                set_sbar_using_self();
+            } else { // downHandler === sbar
+                minTop = _self.offsetTop;
+                maxTop = minTop + (_self.offsetHeight - _sbar.offsetHeight);
+
+                step = -step;
+                newTop = _sbar.offsetTop + step;
+                if (newTop < minTop) newTop = minTop;
+                else if (newTop > maxTop) newTop = maxTop;
+
+                sbar.css('top', newTop);
+                set_self_using_sbar();
+            }
+
+            positionChanged();
+            isMoving = false;
+        });
+    });
+
+    $(window).on('mouseup touchend', function(e) {
+        if (!isDown) return;
+
+        isDown = false;
+
+        if (ctrl.smoothEffect !== false) {
+            allowSmooth = true;
+            Smooth();
         }
+    });
+
+    if (!ctrl.hasOwnProperty('wheelStep')) {
+        ctrl.wheelStep = 60;
+    }
+    self.on('mousewheel', function(e) {
+        var direction;
+
+        direction = e.originalEvent.wheelDelta < 0 ? 1 : -1;
+        ctrl.moveToPos(_self.scrollTop + (ctrl.wheelStep * direction));
+    });
+
+    (function findPoints() {
+        ctrl.points = [];
+
+        if (ctrl.spaceLimits) {
+            for (var i = 0; i < ctrl.spaceLimits.length; i++) {
+                item = ctrl.spaceLimits[i];
+
+                if (typeof item === 'string') {
+                    $(item).each(function() {
+                        ctrl.points.push(this.offsetTop);
+                    });
+                } else if (typeof item === 'number') {
+                    ctrl.points.push(item);
+                } else {
+                    console.warn(item, 'is not a valid point to scroll.');
+                }
+            }
+        }
+
+        ctrl.points.sort(function(a, b) { return a - b; });
+        ctrl.points.unshift(0);
+        ctrl.points.push(Infinity);
+        ctrl.points.filter(function(x, i, a) { return a[x - 1] !== x; });
+    })();
+
+    ctrl.moveToPos = moveToPos;
+    ctrl.moveToSpace = moveToSpace;
+    ctrl.lastSpace = 1;
+
+    if (ctrl.hasOwnProperty('initialSpace')) {
+        ctrl.moveToSpace(ctrl.initialSpace);
+    } else if (localStorage[ctrl.doScrollKey]) {
+        ctrl.moveToPos(localStorage[ctrl.doScrollKey]);
+    }
+
+    return self;
+
+    function getY(e) {
         return e.pageY;
     };
 
-    // The below function get all scrollTop positions from spaceLimits:
-    //  - when number: consider as scrollTop position
-    //  - when string: consider as selector and add each match's scrollTop
-    //  - else: discard with warn alert in the console
-    // make sure there is a start limit
-    // sort the array, so the spaces can be calculated
-    // make sure there is an end limit
-    // remove duplicated scrollTop positions
-
-    function getPoints() {
-        var points = (ctrl.spaceLimits || []).slice();
-        for (var i = 0; i < points.length;) {
-            switch (typeof points[i]) {
-                case 'number':
-                    i++;
-                    break;
-                case 'string':
-                    var selector = points.splice(i, 1)[0];
-                    ctrl.$wrapper.find(selector).each(function() {
-                        var $this = $(this);
-                        var $visible = $this.add($this.nextAll(':visible')).hide();
-                        points.splice(i++, 0, ctrl.$wrapper.height());
-                        $visible.show();
-                    });
-                    break;
-                default:
-                    var error = JSON.stringify(points.splice(i, 1)[0]);
-                    console.warn('spaceLimits, unexpected: ' + error);
-                    break;
-            }
-        }
-        points.unshift(0);
-        points.sort(function(x, y) {
-            return x - y;
-        });
-        points.push(Infinity);
-        points = points.filter(function(x, i, a) {
-            return x !== a[i - 1];
-        });
-        ctrl.numSpaces = points.length - 1;
-        ctrl.points = points;
-        // console.log(ctrl.points);
-    };
-
-    // prepare the scrollbar environment if exists
-    ctrl.scrollbar = $(ctrl.scrollbar).hide();
-    if (ctrl.scrollbar.length) {
-        ctrl.scrollbar.detach().appendTo('body');
-        ctrl.scrollbar.css({
-            position: 'absolute',
-            left: ctrl.$wrapper.offset().left + ctrl.$wrapper.width(),
-        });
-    }
-    var getTopScrollBar = function() {
-        return parseFloat(ctrl.scrollbar.css('top').slice(0, -2));
-    };
-
-    // events to be prevented
-    var preventEvents = 'scroll';
-    ctrl.prevent = function(e) {
-        e.preventDefault();
-    };
-    ctrl.$wrapper.on(preventEvents, ctrl.prevent);
-
-    // function to get actual space (TODO: test some binary search algorithms)
-    ctrl.getSpace = function(y) {
-        for (var i = 1; i < ctrl.points.length; i++) {
-            if (y < ctrl.points[i]) {
-                return i;
-            }
-        }
-        return ctrl.numSpaces;
-    };
-
-    // make sure onSpaceChange exists
-    if (!ctrl.hasOwnProperty('onSpaceChange')) {
-        ctrl.onSpaceChange = function() {};
-    }
-
-    // handle down events
-    var downEvents = 'mousedown touchstart';
-    var startY;
-    var lastY;
-    var isFingerDown;
-    ctrl.fnDown = function(e) {
-        isFingerDown = true;
-        startY = lastY = ctrl.getY(e);
-        startAtTop = e.isScrollBar ? getTopScrollBar() - offTop : ctrl.wrapper.scrollTop;
-    };
-    ctrl.fnUserDown = function(e) {
-        e.fromUser = true;
-        ctrl.fnDown(e);
-    };
-
-    // handle move events
-    var moveEvents = 'mousemove touchmove';
-    var height = ctrl.$wrapper.height();
-    var offTop = ctrl.$wrapper.offset().top;
-    var barMaxTop = height - ctrl.scrollbar.outerHeight(true);
-    var maxTop = -height; // the final value is calculated on `init`
-    var lastDirection;
-    var lastMoveAt;
-    var scrolling;
-    var lastScrollTop;
-    ctrl.fnMove = function(e) {
-        if (scrolling || (e.fromUser && !isFingerDown)) {
+    function Smooth() {
+        if (!allowSmooth) {
             return;
         }
-        scrolling = true;
-        lastMoveAt = new Date;
-        window.requestAnimationFrame(function() {
-            var thisY = ctrl.getY(e);
-            lastStep = thisY - lastY;
-            lastY = thisY;
 
-            // true means finger is going down
-            var direction = lastStep ? lastStep > 0 : lastDirection;
-            if (lastDirection !== direction) {
-                lastDirection = direction;
-                if (e.fromUser) {
-                    ctrl.fnDown({ pageY: thisY, isScrollBar: e.isScrollBar });
-                    scrolling = false;
-                    return;
-                }
-            }
+        step *= 0.975;
+        if (Math.abs(step) < 2) {
+            return;
+        }
 
-            // block move if occurred fnDown()
-            if (!e.fromUser && isFingerDown) {
-                ctrl.endSmooth();
-                return;
-            }
+        self.scrollTop(_self.scrollTop + step);
+        set_sbar_using_self();
+        positionChanged();
 
-            // do Scroll
-            lastScrollTop = ctrl.wrapper.scrollTop;
-            if (e.isScrollBar) {
-                var top = between(startAtTop - startY + thisY, 0, barMaxTop);
-                ctrl.scrollbar.css('top', (top + offTop) + 'px');
-                ctrl.$wrapper.scrollTop(top / barMaxTop * maxTop);
-            } else {
-                var top = between(startAtTop - thisY + startY, 0, maxTop);
-                ctrl.$wrapper.scrollTop(top);
-                ctrl.scrollbar.css({
-                    top: top / maxTop * barMaxTop + offTop,
-                    display: 'block',
-                });
-            }
-            localStorage.setItem(ctrl.storageKey, ctrl.wrapper.scrollTop);
+        setTimeout(Smooth, 10);
+    };
 
-            // allow next fnMove to start
-            scrolling = false;
-            isInEffect && ctrl.smooth(thisY, e.isScrollBar);
+    function set_sbar_using_self() {
+        var ratio;
 
-            // space verification
-            ctrl.space = ctrl.getSpace(ctrl.wrapper.scrollTop);
-            if (ctrl.space !== ctrl.lastSpace) {
+        if (!_sbar) return;
+
+        ratio = Math.min(_self.scrollTop / (_self.scrollHeight - _self.offsetHeight), 1);
+        sbar.css('top', _self.offsetTop + ratio * (_self.offsetHeight - _sbar.offsetHeight));
+    };
+
+    function downEvent(handler) {
+        handler.on('mousedown touchstart', function(e) {
+            downY = lastY = getY(e);
+            isDown = true;
+            downHandler = handler;
+            allowSmooth = false;
+
+            sbar.css({
+                left: _self.offsetLeft + _self.offsetWidth,
+            });
+        });
+    };
+
+    function set_self_using_sbar() {
+        var ratio;
+
+        ratio = Math.min((_sbar.offsetTop - _self.offsetTop) / (_self.offsetHeight - _sbar.offsetHeight), 1);
+        self.scrollTop(ratio * (_self.scrollHeight - _self.offsetHeight));
+    };
+
+    function moveToPos(y) {
+        var maxPos;
+
+        maxPos = _self.offsetTop + (_self.scrollHeight - _self.offsetHeight);
+        if (y > maxPos) y = maxPos;
+        if (y < 0) y = 0;
+
+        self.scrollTop(y);
+        positionChanged();
+    };
+
+    function moveToSpace(x) {
+        if (x < 1) x = 1;
+        if (x > ctrl.points.length) x = ctrl.points.length;
+
+        moveToPos(ctrl.points[x - 1]);
+    };
+
+    function positionChanged() {
+        var pos, space;
+
+        pos = _self.scrollTop;
+        localStorage[ctrl.doScrollKey] = pos;
+
+        space = findSpace(pos);
+        if (space != ctrl.space) {
+            ctrl.lastSpace = ctrl.space;
+            ctrl.space = space;
+
+            if (typeof ctrl.onSpaceChange === 'function') {
                 ctrl.onSpaceChange(ctrl);
-                ctrl.lastSpace = ctrl.space;
-            }
-        });
-    };
-    ctrl.fnUserMove = function(e) {
-        e.fromUser = true;
-        ctrl.fnMove(e);
-    };
-
-    // handle what to do on scroll handled end
-    ctrl.hasOwnProperty('smoothEffect') || (ctrl.smoothEffect = true);
-    var upEvents = 'mouseup touchend';
-    var fingerUpAt;
-    var lastStep;
-    var isInEffect;
-    window.ctrl = ctrl;
-    ctrl.fnUp = function(e) {
-        isFingerDown = false;
-        fingerUpAt = new Date;
-
-        // rule whether to do smooth effect on mouseup/touchend
-        if (e.fromUser) {
-            var lastMoveLag = elapsedTime(lastMoveAt, fingerUpAt);
-            if (ctrl.smoothEffect && lastMoveLag < 80) {
-                isInEffect = true;
-                scrolling || ctrl.smooth(ctrl.getY(e), e.isScrollBar);
             }
         }
     };
-    ctrl.fnUserUp = function(e) {
-        e.fromUser = true;
-        ctrl.fnUp(e);
-    };
-    ctrl.smooth = function(y, scrollbar) {
-        lastStep *= 0.975;
-        var unchanged = lastScrollTop === ctrl.wrapper.scrollTop;
-        if (unchanged || Math.abs(lastStep) < 2) {
-            ctrl.endSmooth();
-            return;
-        }
-        ctrl.fnMove({ pageY: y + lastStep, isScrollBar: scrollbar });
-    };
-    ctrl.endSmooth = function() {
-        if (isInEffect) {
-            isInEffect = false;
-            scrolling = false;
-        }
-    };
 
-    // treat mouseleave as fnUp when fnDown is on
-    ctrl.fnMouseleave = function(e) {
-        if (isFingerDown) {
-            ctrl.fnUserUp(e);
-        }
-    };
+    function findSpace(pos) {
+        var left, right, mid;
 
-    // Handle mouse wheel action
-    isNaN(ctrl.wheelStep) && (ctrl.wheelStep = 60);
-    ctrl.fnMousewheel = function(e) {
-        ctrl.endSmooth();
-        var direction = e.originalEvent.wheelDelta < 0 ? 1 : -1;
-        var diff = direction * ctrl.wheelStep;
-        var newY = ctrl.wrapper.scrollTop + diff;
-        ctrl.moveToPos(newY);
-    };
+        left = 1;
+        right = ctrl.points.length;
 
-    // attach events
-    var bind = {};
-    bind[downEvents] = ctrl.fnUserDown;
-    bind[moveEvents] = ctrl.fnUserMove;
-    bind[upEvents] = ctrl.fnUserUp;
-    bind.mouseleave = ctrl.fnMouseleave;
-    bind.mousewheel = ctrl.fnMousewheel;
-    var supportPassive = false;
-    try {
-        var opts = Object.defineProperty({}, 'passive', {
-            get: function() { supportPassive = true },
-        });
-        window.addEventListener('test', null, opts);
-    } catch (e) {}
-    supportPassive = supportPassive && { passive: true };
-    ctrl.$wrapper.on(bind, supportPassive);
+        while (left < right) {
+            mid = (left + right) >> 1;
 
-    var scrollbarBind = {};
-    var scrollbarFns = function(fn) {
-        scrollbarBind[key] = function(e) {
-            e.isScrollBar = true;
-            fn.apply(this, arguments);
-        }
-    }
-    for (var key in bind) {
-        scrollbarFns(bind[key]);
-    }
-    ctrl.scrollbar.on(scrollbarBind, supportPassive);
-
-    // allow user to move to a specific scrollTop position
-    ctrl.moveToPos = function(y) {
-        ctrl.fnDown({ pageY: 0 });
-        ctrl.fnMove({ pageY: ctrl.wrapper.scrollTop - y });
-        ctrl.fnUp({});
-    };
-
-    // allow user to move to a specific space
-    ctrl.moveToSpace = function(space) {
-        space = between(space, 1, ctrl.numSpaces);
-        ctrl.moveToPos(ctrl.points[space - 1]);
-    };
-
-    // function that moves scroll to initialSpace onInit
-    var setInitialSpace = function() {
-        if (ctrl.hasOwnProperty('initialSpace')) {
-            ctrl.initialSpace = between(ctrl.initialSpace, 1, ctrl.numSpaces);
-            ctrl.moveToSpace(ctrl.initialSpace);
-        } else if (ctrl.storageKey) {
-            // issue enhancement #4
-            lastScrollTop = localStorage.getItem(ctrl.storageKey);
-            ctrl.moveToPos(lastScrollTop);
-        } else {
-            ctrl.moveToSpace(1);
-        }
-    };
-
-    // function that initializes the plugin
-    var init = function() {
-        window.requestAnimationFrame(function() {
-            var initialPosition = ctrl.$wrapper.css('position');
-            ctrl.$wrapper.css({
-                position: 'absolute',
-                overflow: 'visible',
-                height: 'auto',
-            });
-            maxTop += ctrl.$wrapper.height();
-            getPoints();
-            ctrl.$wrapper.css({
-                position: initialPosition,
-                overflow: 'hidden',
-                height: height,
-            });
-            typeof ctrl.onInit === 'function' && ctrl.onInit(ctrl);
-            setInitialSpace();
-        });
-    };
-
-    // wait all image heights to be available
-    var childrenImgs = ctrl.$wrapper.find('img');
-    var loaded = 0;
-    childrenImgs.each(function() {
-        var $this = $(this);
-        var timer = setInterval(function() {
-            if ($this.is('img') && $this.height() == 0) {
-                console.log('waiting for: ' + $this[0].src);
-                return;
+            if (pos < ctrl.points[mid]) {
+                right = mid;
+            } else {
+                left = mid + 1;
             }
-            (++loaded === childrenImgs.length) && init();
-            clearInterval(timer);
-        }, 50);
-    });
-    childrenImgs.length || init();
+        }
 
-    // Return ctrl instance to the user 
-    return ctrl;
+        return right;
+    };
+
 };
