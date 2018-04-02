@@ -188,6 +188,8 @@ $.fn.doScroll = function(ctrl) {
         if (y < 0) y = 0;
 
         self.scrollTop(y);
+        set_sbar_using_self();
+        
         positionChanged();
     };
 
