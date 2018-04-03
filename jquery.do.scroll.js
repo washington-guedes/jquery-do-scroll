@@ -20,9 +20,11 @@ $.fn.doScroll = function(ctrl) {
             width: 20,
             height: 160,
         });
+    } else {
+        ctrl.scrollbar = $(ctrl.scrollbar);
     }
 
-    sbar = $(ctrl.scrollbar);
+    sbar = ctrl.scrollbar;
     self.after(sbar);
     _sbar = sbar[0];
 
@@ -102,9 +104,18 @@ $.fn.doScroll = function(ctrl) {
                 item = ctrl.spaceLimits[i];
 
                 if (typeof item === 'string') {
+                    var scrollHeight, nextAllVisible;
+
+                    scrollHeight = self.height();
+                    self.css('height', 'auto');
+
                     self.find(item).each(function() {
-                        ctrl.points.push(this.offsetTop);
+                        nextAllVisible = $(this).nextAll(':visible').add(this).hide();
+                        ctrl.points.push(_self.scrollHeight);
+                        nextAllVisible.show();
                     });
+                    self.height(scrollHeight);
+
                 } else if (typeof item === 'number') {
                     ctrl.points.push(item);
                 } else {
