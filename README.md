@@ -1,5 +1,5 @@
 # jquery-do-scroll
-Creates an scroll-y like action.
+Creates an scroll-Y like action.
 
 - [Properties](#properties)
  - [scrollbar](#scrollbar)
@@ -8,13 +8,12 @@ Creates an scroll-y like action.
  - [onSpaceChange](#spacelimits-and-onspacechange)
  - [initialSpace](#initialspace)
  - [smoothEffect](#smootheffect)
- - [onInit](#oninit)
  
 - [Methods](#methods)
  - [moveToPos](#movetopos)
  - [moveToSpace](#movetospace)
 
-This plugin is intended to create an scroll (JavaScript controlled) to work in any device.
+This plugin is intended to create an scroll-Y event (JavaScript controlled) to work in any device.
 
 This is done using touch and mouse event handlers.
 
@@ -28,30 +27,51 @@ All properties are optional, it allows you to create an scroll with:
 $('#wrapper').doScroll();
 ```
 
-But of course, you can add some properties to make your scroll awesome. Let's populate an object:
+But of course, you can make an awesome scroll. Let's set some properties:
 
 ```JavaScript
-var properties = {};
+var ctrl = {
+    // ...
+};
 ```
 
 ### scrollbar
 
-You are free to style your own scrollbar:
+Style your own scrollbar:
 
 ```JavaScript
-properties.scrollbar = $('<div />').css({
-    backgroundColor: '#fff',
-    height: '75px',
-    width: '10px',
-    border: '2px solid #ccc',
-    borderRadius: '5px',
-});
+var ctrl = {
+    // ...
+    scrollbar: $('<div />').css({
+        backgroundColor: '#fff',
+        height: '75px',
+        width: '10px',
+        border: '2px solid #ccc',
+        borderRadius: '5px',
+        // ...
+    }),
+    // ...
+};
 ```
 
-Or you can supply a selector to be your scrollbar:
+You can also give your scrollbar selector, so the plugin can find it:
 
 ```JavaScript
-properties.scrollbar = '#myScrollBar';
+var ctrl = {
+    // ...
+    scrollbar: '#myScrollBar',
+    // ...
+};
+```
+
+You can also use the default scrollbar by passing `true`:
+
+```JavaScript
+var ctrl = {
+    // ...
+    scrollbar: true,
+    // ...
+};
 ```
 
 ### wheelStep
@@ -59,73 +79,78 @@ properties.scrollbar = '#myScrollBar';
 The default distance when you use your mouse wheel to scroll is 60 pixels, but you can change it:
 
 ```JavaScript
-properties.wheelStep = 150;
+var ctrl = {
+    // ...
+    wheelStep: 150,
+    // ...
+};
 ```
 
 If you'd like to invert the scroll direction on mouse wheel, you can set a negative value.
 
 ### spaceLimits, and onSpaceChange
 
-There is a ready built-in that allows you to run specific code when certain points are reached when scrolling.
+You can trigger some code when you scroll from one space to another. To do this, you should set the `spaceLimits` property.
 
-It works by declaring both: `spaceLimits` array, and `onSpaceChange` function:
+You can use numbers (in pixels), selectors (as strings), or mix them.
 
 ```JavaScript
-properties.spaceLimits = ['.space'];
-properties.onSpaceChange = function(ctrl) {
-    console.log('From %s to %s', ctrl.lastSpace, ctrl.space);
+var ctrl = {
+    // ...
+    spaceLimits: [100, 200.5, '.space'],
+    // ...
 };
 ```
 
-Let's suppose you have three inline-block elements with class `space` inside your wrapper element with height 200px each. This will be the result:
+If string, it will find every match of the selector and get its scrollTop position, the final array will be like:
 
 ```JavaScript
-ctrl.points = [0, 200, 400, Infinity];
+properties.points = [0, 400, 1500, Infinity]
 ```
 
-In pixels:
+Which means:
 
-- space 1: `scrollTop >= 0` and `scrollTop < 200`;
-- space 2: `scrollTop >= 200` and `scrollTop < 400`;
-- space 3: `scrollTop >= 400`.
+- space 1: `scrollTop >= 0` and `scrollTop < 400`;
+- space 2: `scrollTop >= 400` and `scrollTop < 1500`;
+- space 3: `scrollTop >= 1500`.
 
-This is how `doScroll` function detects when to trigger the `onSpaceChange` function.
-
-You can also set positions instead of selectors in the `spaceLimits` property: 
+When another space is reached, the `onSpaceChange` function will be executed, if it exists: 
 
 ```JavaScript
-properties.spaceLimits = [200, 400];
+var ctrl = {
+    // ...
+    onSpaceChange: function(ctrl) {
+    	console.log('From %s to %s', ctrl.lastSpace, ctrl.space);
+	},
+	// ...
+};
 ```
-
-- `0` and `Inifinity` values will always be added to `spaceLimits`;
-- Any duplicated values will be removed.
-- Any other data type will trigger `console.alert`.
 
 ### initialSpace
 
-The default initital space is `1`. But you can change it:
+If your scroll has an `id`, it will be created one key in `localStorage` for it. This way, next time you open your page the scroll will show up in the right position.
+
+Of course, you can disable this functionality with the `initialSpace` property:
 
 ```JavaScript
-properties.initialSpace = 3;
+var ctrl = {
+    // ...
+    initialSpace: 1,
+	// ...
+};
 ```
 
-The `initialSpace` must be a valid space, otherwise will be automatically changed to 1 or to the lastSpace.
+If the `initialSpace` is set, the scroll will show up in the exact position where the given space starts.
 
 ### smoothEffect
 
-The inertia effect of the scroll is by default on, but you can turn off this way:
+The inertia effect of the scroll is set by default, but you can also turn off this way:
 
 ```JavaScript
-properties.smoothEffect = false;
-```
-
-### onInit
-
-The `doScroll` function waits the child images to be ready before start working completely. You can avail this action to do something you'd like to: 
-
-```JavaScript
-properties.onInit = function(ctrl) {
-    // ready to scroll
+var ctrl = {
+	// ...
+	smoothEffect: false,
+	// ...
 };
 ```
 
@@ -133,18 +158,14 @@ properties.onInit = function(ctrl) {
 
 # Methods
 
-The `doScroll` function returns an instance of the manager control to you:
-
-```JavaScript
-var ctrl = $('#wrapper').doScroll(properties);
-```
-
 ### moveToPos
 
-To move to an specific position (in pixels), you can use:
+To move to an specific position (in pixels), you can run:
 
 ```JavaScript
-ctrl.moveToPos(250);
+var position = 250;
+
+ctrl.moveToPos(position);
 ```
 
 ### moveToSpace
@@ -152,7 +173,9 @@ ctrl.moveToPos(250);
 To move to an specific space (based on `spaceLimits`), you can use:
 
 ```JavaScript
-ctrl.moveToSpace(3);
+var space = 3;
+
+ctrl.moveToSpace(space);
 ```
 
 ---

@@ -86,6 +86,10 @@ $.fn.doScroll = function(ctrl) {
         }
     });
 
+    self.add(sbar).on('scroll', function(e) {
+        e.preventDefault();
+    });
+
     if (!ctrl.hasOwnProperty('wheelStep')) {
         ctrl.wheelStep = 60;
     }
