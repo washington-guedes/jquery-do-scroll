@@ -1,7 +1,7 @@
 $.fn.doScroll = function(ctrl) {
     'use strict';
 
-    var self, _self, downY, isDown, isMoving, lastY, step, allowSmooth, sbar, _sbar, downHandler, item;
+    var self, _self, downY, isDown, isMoving, lastY, step, allowSmooth, sbar, _sbar, downHandler, item, newSpace;
 
     self = this;
     _self = this[0];
@@ -11,6 +11,7 @@ $.fn.doScroll = function(ctrl) {
     self.css({
         overflow: 'hidden',
         userSelect: 'none',
+        cursor: '-webkit-grab',
     });
 
     if (ctrl.scrollbar === true) {
@@ -135,6 +136,8 @@ $.fn.doScroll = function(ctrl) {
     };
 
     function Smooth() {
+        var smoothStep;
+
         if (!allowSmooth) {
             return;
         }
@@ -144,7 +147,14 @@ $.fn.doScroll = function(ctrl) {
             return;
         }
 
+        smoothStep = _self.scrollTop;
         self.scrollTop(_self.scrollTop + step);
+        smoothStep -= _self.scrollTop;
+
+        if (Math.abs(smoothStep) < 2) {
+            return;
+        }
+
         set_sbar_using_self();
         positionChanged();
 
@@ -197,6 +207,7 @@ $.fn.doScroll = function(ctrl) {
         if (x < 1) x = 1;
         if (x > ctrl.points.length) x = ctrl.points.length;
 
+        newSpace = x;
         moveToPos(ctrl.points[x - 1]);
     };
 
@@ -206,7 +217,7 @@ $.fn.doScroll = function(ctrl) {
         pos = _self.scrollTop;
         localStorage[ctrl.doScrollKey] = pos;
 
-        space = findSpace(pos);
+        space = newSpace || findSpace(pos);
         if (space != ctrl.space) {
             ctrl.lastSpace = ctrl.space;
             ctrl.space = space;
@@ -214,6 +225,7 @@ $.fn.doScroll = function(ctrl) {
             if (typeof ctrl.onSpaceChange === 'function') {
                 ctrl.onSpaceChange(ctrl);
             }
+            newSpace = null;
         }
     };
 
