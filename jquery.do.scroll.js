@@ -12,6 +12,7 @@ $.fn.doScroll = function(ctrl) {
         overflow: 'hidden',
         userSelect: 'none',
         cursor: '-webkit-grab',
+        touchAction: 'pan-y',
     });
 
     if (ctrl.scrollbar === true) {
@@ -147,6 +148,10 @@ $.fn.doScroll = function(ctrl) {
     return self;
 
     function getY(e) {
+        if (typeof e.pageY !== 'number') {
+            e = e.originalEvent;
+            e = e.touches[0] || e.changedTouches[0];
+        }
         return e.pageY;
     };
 
