@@ -31,6 +31,7 @@ $.fn.doScroll = function(ctrl) {
 
     sbar.css({
         position: 'absolute',
+        userSelect: 'none',
         left: (_self.offsetLeft + _self.offsetWidth) || (parseFloat(self.css('marginLeft')) + self.width()),
         top: (_self.offsetTop || parseFloat(self.css('marginTop'))),
     });
@@ -145,6 +146,8 @@ $.fn.doScroll = function(ctrl) {
         ctrl.moveToPos(localStorage[ctrl.doScrollKey]);
     }
 
+    self.addClass('--doscroll-on');
+
     return self;
 
     function getY(e) {
@@ -246,7 +249,13 @@ $.fn.doScroll = function(ctrl) {
         pos = _self.scrollTop;
         localStorage[ctrl.doScrollKey] = pos;
 
-        space = newSpace || findSpace(pos);
+        if (newSpace) {
+            space = newSpace;
+            newSpace = null;
+        } else {
+            space = findSpace(pos);
+        }
+
         if (space != ctrl.space) {
             ctrl.lastSpace = ctrl.space;
             ctrl.space = space;
@@ -254,7 +263,6 @@ $.fn.doScroll = function(ctrl) {
             if (typeof ctrl.onSpaceChange === 'function') {
                 ctrl.onSpaceChange(ctrl);
             }
-            newSpace = null;
         }
     };
 
