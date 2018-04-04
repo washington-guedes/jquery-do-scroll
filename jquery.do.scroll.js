@@ -31,8 +31,8 @@ $.fn.doScroll = function(ctrl) {
 
     sbar.css({
         position: 'absolute',
-        left: (_self.offsetLeft + _self.offsetWidth) || (parseFloat(self.css('margin-left')) + self.width()),
-        top: _self.offsetTop || parseFloat(self.css('margin-top')),
+        left: (_self.offsetLeft + _self.offsetWidth) || (parseFloat(self.css('marginLeft')) + self.width()),
+        top: (_self.offsetTop || parseFloat(self.css('marginTop'))),
     });
 
     if (!self.is(':visible')) {
@@ -60,10 +60,10 @@ $.fn.doScroll = function(ctrl) {
                 set_sbar_using_self();
             } else { // downHandler === sbar
                 minTop = _self.offsetTop;
-                maxTop = minTop + (_self.offsetHeight - _sbar.offsetHeight);
+                maxTop = minTop + getHeightAreaScrollBar();
 
                 step = -step;
-                newTop = _sbar.offsetTop + step;
+                newTop = _sbar.offsetTop - parseFloat(sbar.css('marginTop')) + step;
                 if (newTop < minTop) newTop = minTop;
                 else if (newTop > maxTop) newTop = maxTop;
 
@@ -181,13 +181,29 @@ $.fn.doScroll = function(ctrl) {
         setTimeout(Smooth, 10);
     };
 
+    function getHeightAreaScrollBar() {
+        var areaScrollBarHeight;
+
+        areaScrollBarHeight = _self.offsetHeight - _sbar.offsetHeight;
+        areaScrollBarHeight -= parseFloat(sbar.css('marginTop')) + parseFloat(sbar.css('marginBottom'));
+
+        return areaScrollBarHeight;
+    };
+
     function set_sbar_using_self() {
         var ratio;
 
         if (!_sbar) return;
 
         ratio = Math.min(_self.scrollTop / (_self.scrollHeight - _self.offsetHeight), 1);
-        sbar.css('top', _self.offsetTop + ratio * (_self.offsetHeight - _sbar.offsetHeight));
+        sbar.css('top', _self.offsetTop + ratio * getHeightAreaScrollBar());
+    };
+
+    function set_self_using_sbar() {
+        var ratio;
+
+        ratio = Math.min((_sbar.offsetTop - _self.offsetTop - parseFloat(sbar.css('marginTop'))) / getHeightAreaScrollBar(), 1);
+        self.scrollTop(ratio * (_self.scrollHeight - _self.offsetHeight));
     };
 
     function downEvent(handler) {
@@ -201,13 +217,6 @@ $.fn.doScroll = function(ctrl) {
                 left: _self.offsetLeft + _self.offsetWidth,
             });
         });
-    };
-
-    function set_self_using_sbar() {
-        var ratio;
-
-        ratio = Math.min((_sbar.offsetTop - _self.offsetTop) / (_self.offsetHeight - _sbar.offsetHeight), 1);
-        self.scrollTop(ratio * (_self.scrollHeight - _self.offsetHeight));
     };
 
     function moveToPos(y) {
