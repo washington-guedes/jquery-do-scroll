@@ -102,13 +102,15 @@ var ctrl = {
 };
 ```
 
-If string, it will find every match of the selector and get its scrollTop position, the final array will be like:
+If string, it will find every match of the selector and get its scrollTop position.
+
+After processing the `spaceLimits`, the final array will be like:
 
 ```JavaScript
-properties.points = [0, 400, 1500, Infinity]
+    console.log(ctrl.points); // [0, 400, 1500, Infinity]
 ```
 
-Which means:
+Which means there are three spaces:
 
 - space 1: `scrollTop >= 0` and `scrollTop < 400`;
 - space 2: `scrollTop >= 400` and `scrollTop < 1500`;
@@ -120,9 +122,9 @@ When another space is reached, the `onSpaceChange` function will be executed, if
 var ctrl = {
     // ...
     onSpaceChange: function(ctrl) {
-    	console.log('From %s to %s', ctrl.lastSpace, ctrl.space);
-	},
-	// ...
+        console.log('From %s to %s', ctrl.lastSpace, ctrl.space);
+    },
+    // ...
 };
 ```
 
@@ -136,7 +138,7 @@ Of course, you can disable this functionality with the `initialSpace` property:
 var ctrl = {
     // ...
     initialSpace: 1,
-	// ...
+    // ...
 };
 ```
 
@@ -148,9 +150,9 @@ The inertia effect of the scroll is set by default, but you can also turn off th
 
 ```JavaScript
 var ctrl = {
-	// ...
-	smoothEffect: false,
-	// ...
+    // ...
+    smoothEffect: false,
+    // ...
 };
 ```
 
