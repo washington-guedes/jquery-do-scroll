@@ -13,6 +13,9 @@ Creates an scroll-Y like action.
  - [moveToPos](#movetopos)
  - [moveToSpace](#movetospace)
 
+- [Events](#events)
+ - [onScroll](#onscroll)
+
 This plugin is intended to create an scroll-Y event (JavaScript controlled) to work in any device.
 
 This is done using touch and mouse event handlers.
@@ -178,6 +181,22 @@ To move to an specific space (based on `spaceLimits`), you can use:
 var space = 3;
 
 ctrl.moveToSpace(space);
+```
+
+---
+
+# Events
+
+To trigger some function after every scroll pixel change:
+
+### onScroll
+
+```JavaScript
+
+ctrl.onScroll = function(o) {
+    console.log(o.y);
+};
+
 ```
 
 ---

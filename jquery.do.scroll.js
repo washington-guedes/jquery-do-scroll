@@ -43,6 +43,10 @@ $.fn.doScroll = function(ctrl) {
     downEvent(self);
     downEvent(sbar);
 
+    if (typeof ctrl.onScroll !== 'function') {
+        ctrl.onScroll = function(){};
+    }
+
     $(window).on('mousemove touchmove', function(e) {
         if (!isDown) return;
 
@@ -57,7 +61,7 @@ $.fn.doScroll = function(ctrl) {
             lastY = thisY;
 
             if (downHandler === self) {
-                self.scrollTop(_self.scrollTop + step);
+                setScrollTop(_self.scrollTop + step);
                 set_sbar_using_self();
             } else { // downHandler === sbar
                 minTop = _self.offsetTop;
@@ -171,7 +175,7 @@ $.fn.doScroll = function(ctrl) {
         }
 
         smoothStep = _self.scrollTop;
-        self.scrollTop(_self.scrollTop + step);
+        setScrollTop(_self.scrollTop + step);
         smoothStep -= _self.scrollTop;
 
         if (Math.abs(smoothStep) < 2) {
@@ -206,7 +210,7 @@ $.fn.doScroll = function(ctrl) {
         var ratio;
 
         ratio = Math.min((_sbar.offsetTop - _self.offsetTop - parseFloat(sbar.css('marginTop'))) / getHeightAreaScrollBar(), 1);
-        self.scrollTop(ratio * (_self.scrollHeight - _self.offsetHeight));
+        setScrollTop(ratio * (_self.scrollHeight - _self.offsetHeight));
     };
 
     function downEvent(handler) {
@@ -229,7 +233,7 @@ $.fn.doScroll = function(ctrl) {
         if (y > maxPos) y = maxPos;
         if (y < 0) y = 0;
 
-        self.scrollTop(y);
+        setScrollTop(y);
         set_sbar_using_self();
 
         positionChanged();
@@ -283,6 +287,11 @@ $.fn.doScroll = function(ctrl) {
         }
 
         return right;
+    };
+
+    function setScrollTop(y) {
+        self.scrollTop(y);
+        ctrl.onScroll({ y: y });
     };
 
 };
