@@ -8,6 +8,8 @@ Creates an scroll-Y like action.
  - [onSpaceChange](#spacelimits-and-onspacechange)
  - [initialSpace](#initialspace)
  - [smoothEffect](#smootheffect)
+ - [onTryingToMove](#ontryingtomove)
+ - [hideWarnings](#hidewarnings)
  
 - [Methods](#methods)
  - [moveToPos](#movetopos)
@@ -155,6 +157,34 @@ The inertia effect of the scroll is set by default, but you can also turn off th
 var ctrl = {
     // ...
     smoothEffect: false,
+    // ...
+};
+```
+
+### onTryingToMove
+
+With this method set, the scroll action will only occur if you return a truly value. In other words, it allows you to control the behavior of the scroll while returning falsey values.
+
+```JavaScript
+var ctrl = {
+    // ...
+    onTryingToMove: function(y, step) {
+        // the plugin is trying to move from scrollTop position y, step amount of pixels.
+        // return a truly value to allow, or a falsey one to disallow.
+        return true;
+    },
+    // ...
+};
+```
+
+### hideWarnings
+
+If you set `hideWarnings`, then it won't log to the console errors like trying to initialize multiple times the same element:
+
+```JavaScript
+var ctrl = {
+    // ...
+    hideWarnings: true,
     // ...
 };
 ```

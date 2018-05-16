@@ -4,6 +4,13 @@ $.fn.doScroll = function(ctrl) {
     var self, _self, downY, isDown, isMoving, lastY, step, allowSmooth, sbar, _sbar, downHandler, item, newSpace;
 
     self = this;
+    if (self.is('.--doscroll-on')) {
+        if (!ctrl.hideWarnings) {
+            console.warn('do scroll already set');
+        }
+        return;
+    }
+
     _self = this[0];
 
     ctrl.doScrollKey = 'doScrollKey$' + location.href + '$' + ctrl.id;
@@ -47,6 +54,12 @@ $.fn.doScroll = function(ctrl) {
         ctrl.onScroll = function(){};
     }
 
+    if (typeof ctrl.onTryingToMove !== 'function') {
+        ctrl.onTryingToMove = function() {
+            return true;
+        };
+    }
+
     $(window).on('mousemove touchmove', function(e) {
         if (!isDown) return;
 
@@ -60,23 +73,27 @@ $.fn.doScroll = function(ctrl) {
             step = lastY - thisY;
             lastY = thisY;
 
-            if (downHandler === self) {
-                setScrollTop(_self.scrollTop + step);
-                set_sbar_using_self();
-            } else { // downHandler === sbar
-                minTop = _self.offsetTop;
-                maxTop = minTop + getHeightAreaScrollBar();
-
-                step = -step;
-                newTop = _sbar.offsetTop - parseFloat(sbar.css('marginTop')) + step;
-                if (newTop < minTop) newTop = minTop;
-                else if (newTop > maxTop) newTop = maxTop;
-
-                sbar.css('top', newTop);
-                set_self_using_sbar();
+            if (ctrl.onTryingToMove(_self.scrollTop, step)) {
+                
+                if (downHandler === self) {
+                    self.scrollTop(_self.scrollTop + step);
+                    set_sbar_using_self();
+                } else { // downHandler === sbar
+                    minTop = _self.offsetTop;
+                    maxTop = minTop + getHeightAreaScrollBar();
+    
+                    step = -step;
+                    newTop = _sbar.offsetTop - parseFloat(sbar.css('marginTop')) + step;
+                    if (newTop < minTop) newTop = minTop;
+                    else if (newTop > maxTop) newTop = maxTop;
+    
+                    sbar.css('top', newTop);
+                    set_self_using_sbar();
+                }
+    
+                positionChanged();
             }
 
-            positionChanged();
             isMoving = false;
         });
     });
@@ -175,15 +192,18 @@ $.fn.doScroll = function(ctrl) {
         }
 
         smoothStep = _self.scrollTop;
-        setScrollTop(_self.scrollTop + step);
-        smoothStep -= _self.scrollTop;
+        if (ctrl.onTryingToMove(_self.scrollTop, step)) {
+            self.scrollTop(_self.scrollTop + step);
+            
+            set_sbar_using_self();
+            positionChanged();
+        }
+        else return;
 
+        smoothStep -= _self.scrollTop;
         if (Math.abs(smoothStep) < 2) {
             return;
         }
-
-        set_sbar_using_self();
-        positionChanged();
 
         setTimeout(Smooth, 10);
     };
@@ -210,7 +230,7 @@ $.fn.doScroll = function(ctrl) {
         var ratio;
 
         ratio = Math.min((_sbar.offsetTop - _self.offsetTop - parseFloat(sbar.css('marginTop'))) / getHeightAreaScrollBar(), 1);
-        setScrollTop(ratio * (_self.scrollHeight - _self.offsetHeight));
+        self.scrollTop(ratio * (_self.scrollHeight - _self.offsetHeight));
     };
 
     function downEvent(handler) {
@@ -227,16 +247,20 @@ $.fn.doScroll = function(ctrl) {
     };
 
     function moveToPos(y) {
-        var maxPos;
+        var maxPos, step;
 
         maxPos = _self.offsetTop + (_self.scrollHeight - _self.offsetHeight);
         if (y > maxPos) y = maxPos;
         if (y < 0) y = 0;
 
-        setScrollTop(y);
-        set_sbar_using_self();
-
-        positionChanged();
+        step = y - _self.scrollTop;
+        
+        if (ctrl.onTryingToMove(_self.scrollTop, step)) {
+            self.scrollTop(y);
+            set_sbar_using_self();
+    
+            positionChanged();
+        }
     };
 
     function moveToSpace(x) {
@@ -268,6 +292,8 @@ $.fn.doScroll = function(ctrl) {
                 ctrl.onSpaceChange(ctrl);
             }
         }
+
+        ctrl.onScroll({ y: pos });
     };
 
     function findSpace(pos) {
@@ -287,11 +313,6 @@ $.fn.doScroll = function(ctrl) {
         }
 
         return right;
-    };
-
-    function setScrollTop(y) {
-        self.scrollTop(y);
-        ctrl.onScroll({ y: y });
     };
 
 };
