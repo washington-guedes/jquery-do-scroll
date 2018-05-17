@@ -13,7 +13,7 @@ $.fn.doScroll = function(ctrl) {
 
     _self = this[0];
 
-    ctrl.doScrollKey = 'doScrollKey$' + location.href + '$' + ctrl.id;
+    ctrl.doScrollKey = 'doScrollKey$' + location.href + '$' + (ctrl.id || _self.id);
 
     self.css({
         overflow: 'hidden',
